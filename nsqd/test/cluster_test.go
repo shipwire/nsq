@@ -15,6 +15,9 @@ import (
 
 func equal(t *testing.T, act, exp interface{}) {
 	if !reflect.DeepEqual(exp, act) {
+		if err, ok := act.(error); ok {
+			t.Log(err)
+		}
 		_, file, line, _ := runtime.Caller(1)
 		t.Logf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n",
 			filepath.Base(file), line, exp, act)

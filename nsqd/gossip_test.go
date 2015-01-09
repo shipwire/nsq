@@ -1,6 +1,7 @@
 package nsqd
 
 import (
+	"fmt"
 	"net"
 	"sort"
 	"testing"
@@ -38,9 +39,11 @@ func TestGossip(t *testing.T) {
 		}
 	}
 	// sort the ports for later comparison
+	fmt.Println("Seed", seedNode.tcpListener.Addr(), tcpPorts)
 	sort.Ints(tcpPorts)
 
 	time.Sleep(250 * time.Millisecond)
+	fail := false
 
 	// all nodes in the cluster should have registrations
 	for _, nsqd := range nsqds {
@@ -49,10 +52,17 @@ func TestGossip(t *testing.T) {
 		for _, producer := range producers {
 			actTCPPorts = append(actTCPPorts, producer.TCPPort)
 		}
+		fmt.Println("Node", nsqd.tcpListener.Addr(), actTCPPorts)
 		sort.Ints(actTCPPorts)
 
-		equal(t, len(producers), num)
-		equal(t, tcpPorts, actTCPPorts)
+		if len(producers) != num {
+			fail = true
+		}
+		//equal(t, len(producers), num)
+		defer equal(t, actTCPPorts, tcpPorts)
+	}
+	if fail {
+		return
 	}
 
 	// create a topic/channel on the first node

@@ -3,6 +3,7 @@ package nsqd
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/bitly/nsq/util"
 	"github.com/bitly/nsq/util/registrationdb"
+	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -83,6 +85,7 @@ func initSerf(opts *nsqdOptions,
 	serfConfig.Tags["v"] = util.BINARY_VERSION
 	serfConfig.NodeName = net.JoinHostPort(opts.BroadcastAddress, strconv.Itoa(tcpAddr.Port))
 
+	serfConfig.MemberlistConfig = memberlist.DefaultLocalConfig()
 	serfConfig.MemberlistConfig.AdvertiseAddr = broadcastAddr.String()
 	serfConfig.MemberlistConfig.BindAddr = gossipAddr.IP.String()
 	serfConfig.MemberlistConfig.BindPort = gossipAddr.Port
@@ -104,7 +107,7 @@ func (n *NSQD) serfMemberJoin(ev serf.Event) {
 		producer := memberToProducer(member)
 		r := registrationdb.Registration{"client", "", ""}
 		n.rdb.AddProducer(r, producer)
-		n.logf("DB: member(%s) REGISTER %s", producer.ID, r)
+		n.logf("DB(%s): member(%s) REGISTER %s", n.tcpListener.Addr(), producer.ID, r)
 	}
 }
 
