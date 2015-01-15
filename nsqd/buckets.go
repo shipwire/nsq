@@ -1,10 +1,9 @@
-package main
+package nsqd
 
 import (
+	"fmt"
 	"sync"
 	"time"
-
-	"github.com/bitly/nsq/nsqd"
 )
 
 var round time.Duration = 2 * time.Second
@@ -15,8 +14,9 @@ type Host struct {
 	buckets                                 map[time.Time]*Bucket
 	nextBucket                              *Bucket
 	recoveryLock, bucketsLock, messagesLock *sync.Mutex
-	messages                                map[nsqd.MessageID]*Bucket
+	messages                                map[MessageID]*Bucket
 	inRecovery                              bool
+	InitiateRecovery                        func()
 }
 
 func NewHost(hostname string) *Host {
@@ -26,20 +26,20 @@ func NewHost(hostname string) *Host {
 		bucketsLock:  &sync.Mutex{},
 		messagesLock: &sync.Mutex{},
 		recoveryLock: &sync.Mutex{},
-		messages:     map[nsqd.MessageID]*Bucket{},
+		messages:     map[MessageID]*Bucket{},
 	}
 	h.nextBucket = h.GetBucketAtExpireTime(time.Now())
 	return h
 }
 
 type Bucket struct {
-	messages   map[nsqd.MessageID]nsqd.Message
+	messages   map[MessageID]Message
 	expiration time.Time
 	next       *Bucket
 	host       *Host
 }
 
-func (b *Bucket) GetMessage(id nsqd.MessageID) nsqd.Message {
+func (b *Bucket) GetMessage(id MessageID) Message {
 	return b.messages[id]
 }
 
@@ -52,7 +52,7 @@ func (h *Host) GetBucketAtExpireTime(e time.Time) *Bucket {
 
 	if !ok {
 		b = &Bucket{
-			messages:   make(map[nsqd.MessageID]nsqd.Message),
+			messages:   make(map[MessageID]Message),
 			expiration: e,
 		}
 
@@ -73,7 +73,7 @@ func (h *Host) GetBucketAtExpireTime(e time.Time) *Bucket {
 	return b
 }
 
-func (h *Host) AddMessage(m nsqd.Message, e time.Time) {
+func (h *Host) AddMessage(m Message, e time.Time) {
 	if h == nil {
 		return
 	}
@@ -81,7 +81,7 @@ func (h *Host) AddMessage(m nsqd.Message, e time.Time) {
 	h.GetBucketAtExpireTime(e).messages[m.ID] = m
 }
 
-func (h *Host) RemoveMessage(m nsqd.Message) {
+func (h *Host) RemoveMessage(m Message) {
 	if h == nil {
 		return
 	}
@@ -91,6 +91,16 @@ func (h *Host) RemoveMessage(m nsqd.Message) {
 		delete(have.messages, m.ID)
 		delete(h.messages, m.ID)
 	}
+}
+
+func (h *Host) GetMessages() map[MessageID]*Bucket {
+	m := make(map[MessageID]*Bucket, len(h.messages))
+	h.messagesLock.Lock()
+	defer h.messagesLock.Unlock()
+	for mid, b := range h.messages {
+		m[mid] = b
+	}
+	return m
 }
 
 func (h *Host) Recovery(stop chan bool) {
@@ -108,6 +118,21 @@ func (h *Host) Recovery(stop chan bool) {
 			return
 		}
 	}
+}
+
+// SetRecovery sets the recovery state of the host atomically. If the state was changed, the return value is true.
+func (h *Host) SetRecovery(state bool) bool {
+	h.recoveryLock.Lock()
+	defer h.recoveryLock.Unlock()
+	if h.inRecovery == state {
+		return false
+	}
+	h.inRecovery = state
+	return true
+}
+
+func (h *Host) RecoveryTopic() string {
+	return fmt.Sprintf("recover:%s", h.host)
 }
 
 func (b *Bucket) Expire() {

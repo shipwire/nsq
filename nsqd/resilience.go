@@ -6,20 +6,26 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"github.com/hashicorp/serf/command/agent"
+
+	"github.com/hashicorp/serf/serf"
 	"github.com/shipwire/ansqd/internal/polity"
 )
+
+var ExpirationTime time.Duration
 
 type audit struct {
 	m *Message
 }
 
-type delegate struct{}
+type delegate struct {
+	n *NSQD
+	a *auditor
+}
 
 // OnFinish is called when FIN is received for the message
 func (d *delegate) OnFinish(m *Message) {
-	n.GetTopic("audit.finish").PutMessage(&Message{
-		ID:   n.NewID(),
+	d.n.GetTopic("audit.finish").PutMessage(&Message{
+		ID:   d.n.NewID(),
 		Body: m.ID[:],
 	})
 	log.Printf("AUDIT: OnFinish %x", m.ID)
@@ -30,8 +36,8 @@ func (d *delegate) OnQueue(m *Message, topic string) {
 	if strings.HasPrefix(topic, "audit.") {
 		return
 	}
-	n.GetTopic("audit.send").PutMessage(&Message{
-		ID:   n.NewID(),
+	d.n.GetTopic("audit.send").PutMessage(&Message{
+		ID:   d.n.NewID(),
 		Body: auditMessage{*m, topic}.Bytes(),
 	})
 	log.Printf("AUDIT: OnQueue %x", m.ID)
@@ -39,17 +45,18 @@ func (d *delegate) OnQueue(m *Message, topic string) {
 
 // OnRequeue is called when REQ is received for the message
 func (d *delegate) OnRequeue(m *Message, delay time.Duration) {
-	a.Req(m)
+	d.a.Req(m)
 }
 
 // OnTouch is called when TOUCH is received for the message
 func (d *delegate) OnTouch(m *Message) {
-	a.Touch(m)
+	d.a.Touch(m)
 }
 
 type auditor struct {
 	p         *polity.Polity
-	ag        *agent.Agent
+	s         *serf.Serf
+	n         *NSQD
 	hosts     map[string]*Host
 	hostsLock *sync.Mutex
 }
@@ -70,25 +77,22 @@ func (a auditor) Touch(m *Message) {
 	a.ExtractHost(m).AddMessage(*m, time.Now().Add(ExpirationTime))
 }
 
-func (h *Host) InitiateRecovery() {
-	h.recoveryLock.Lock()
-	if h.inRecovery {
+func (a auditor) InitiateRecovery(h *Host) {
+	if !h.SetRecovery(true) {
 		return
 	}
-	h.inRecovery = true
-	h.recoveryLock.Unlock()
 
-	role := "recover:" + h.host
+	role := h.RecoveryTopic()
 	err := <-a.p.RunElection(role)
 	defer a.p.RunRecallElection(role)
 	if err != nil {
 		return
 	}
 
-	for mid, bucket := range h.messages {
+	for mid, bucket := range h.GetMessages() {
 		m := bucket.GetMessage(mid)
 		am := extractAudit(m)
-		n.GetTopic(am.Topic).PutMessage(&am.Message)
+		a.n.GetTopic(am.Topic).PutMessage(&am.Message)
 	}
 }
 
@@ -119,6 +123,9 @@ func (a auditor) GetHost(hostname string) *Host {
 	host, ok := a.hosts[hostname]
 	if !ok {
 		host = NewHost(hostname)
+		host.InitiateRecovery = func() {
+			a.InitiateRecovery(host)
+		}
 		a.hosts[hostname] = host
 	}
 
