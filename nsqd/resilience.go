@@ -54,11 +54,28 @@ func (d *delegate) OnTouch(m *Message) {
 }
 
 type auditor struct {
-	p         *polity.Polity
-	s         *serf.Serf
-	n         *NSQD
-	hosts     map[string]*Host
-	hostsLock *sync.Mutex
+	p              *polity.Polity
+	sendQ, finishQ *nsq.Consumer
+	s              *serf.Serf
+	n              *NSQD
+	hosts          map[string]*Host
+	hostsLock      *sync.Mutex
+}
+
+func newAuditor(n *NSQD) *auditor {
+	id := n.NewID()
+	ch := string(id[:]) + "#ephemeral"
+	sendQ, _ := nsq.NewConsumer("audit.send", ch, nsq.NewConfig())
+	finishQ, _ := nsq.NewConsumer("audit.finish", ch, nsq.NewConfig())
+	return &auditor{
+		p:         polity.Create(n.serf, n.serfEventChan),
+		s:         n.serf,
+		n:         n,
+		sendQ:     sendQ,
+		finishQ:   finishQ,
+		hosts:     make(map[string]*Host),
+		hostsLock: &sync.Mutex{},
+	}
 }
 
 func (a auditor) Audit(m *Message) {
