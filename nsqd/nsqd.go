@@ -66,6 +66,8 @@ type NSQD struct {
 	notifyChan chan interface{}
 	exitChan   chan int
 	waitGroup  util.WaitGroupWrapper
+
+	messageDelegate MessageDelegate
 }
 
 func NewNSQD(opts *nsqdOptions) *NSQD {

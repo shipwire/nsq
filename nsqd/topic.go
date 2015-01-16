@@ -181,6 +181,7 @@ func (t *Topic) PutMessages(msgs []*Message) error {
 }
 
 func (t *Topic) put(m *Message) error {
+	m.Delegate = t.ctx.nsqd.messageDelegate
 	select {
 	case t.memoryMsgChan <- m:
 	default:
