@@ -22,7 +22,7 @@ type nsqdOptions struct {
 	AuthHTTPAddresses      []string `flag:"auth-http-address" cfg:"auth_http_addresses"`
 
 	GossipAddress     string   `flag:"gossip-address"`
-	SeedNodeAddresses []string `flag:"seed-node-address"`
+	SeedNodeAddresses []string `flag:"gossip-seed-address"`
 
 	// diskqueue options
 	DataPath        string        `flag:"data-path"`
