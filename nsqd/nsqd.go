@@ -256,10 +256,9 @@ func (n *NSQD) Main() {
 			os.Exit(1)
 		}
 		n.serf = serf
+		n.waitGroup.Wrap(func() { n.serfEventLoop() })
+		n.waitGroup.Wrap(func() { n.gossipLoop() })
 	}
-
-	n.waitGroup.Wrap(func() { n.serfEventLoop() })
-	n.waitGroup.Wrap(func() { n.gossipLoop() })
 }
 
 func (n *NSQD) LoadMetadata() {

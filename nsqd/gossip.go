@@ -284,10 +284,6 @@ func (n *NSQD) gossip(evName string, topicName string, channelName string) error
 }
 
 func (n *NSQD) gossipLoop() {
-	if n.serf == nil {
-		return
-	}
-
 	var evName string
 	var topicName string
 	var channelName string
