@@ -136,8 +136,6 @@ func (n *NSQD) serfUserEvent(ev serf.Event) {
 		return
 	}
 
-	n.logf("gossipEvent: %+v", gev)
-
 	found := false
 	for _, m := range n.serf.Members() {
 		if m.Name == gev.Name {
