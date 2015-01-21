@@ -23,6 +23,7 @@ import (
 	"github.com/bitly/nsq/util/lookupd"
 	"github.com/bitly/nsq/util/registrationdb"
 	"github.com/hashicorp/serf/serf"
+	"github.com/shipwire/serfer"
 )
 
 const (
@@ -58,6 +59,7 @@ type NSQD struct {
 
 	serf          *serf.Serf
 	serfEventChan chan serf.Event
+	serfer        *serfer.Serfer
 	gossipChan    chan interface{}
 	gossipKey     []byte
 	rdb           *registrationdb.RegistrationDB
@@ -249,7 +251,7 @@ func (n *NSQD) Main() {
 	}
 
 	if n.opts.GossipAddress != "" {
-		serf, err := initSerf(n.opts, n.serfEventChan,
+		serf, serfer, err := initSerf(n.opts, n.serfEventChan,
 			n.tcpListener.Addr().(*net.TCPAddr),
 			n.httpListener.Addr().(*net.TCPAddr),
 			httpsAddr,
@@ -263,6 +265,7 @@ func (n *NSQD) Main() {
 		n.serf = serf
 		n.waitGroup.Wrap(func() { n.serfEventLoop() })
 		n.waitGroup.Wrap(func() { n.gossipLoop() })
+		n.serfer = serfer
 	}
 }
 

@@ -15,8 +15,8 @@ type workerFilter struct {
 func (w workerFilter) match(g guid) bool {
 	g = g << workerIdShift
 	g = g >> timestampShift
-	worker := g >> sequencBits
-	return worker == w.id
+	worker := g >> sequenceBits
+	return int64(worker) == w.id
 }
 
 type timestampFilter struct {
@@ -25,7 +25,7 @@ type timestampFilter struct {
 
 func (t timestampFilter) match(g guid) bool {
 	g = g >> timestampShift
-	at := time.Unix(0, g)
+	at := time.Unix(0, int64(g))
 	return at.Before(t.latest) && at.After(t.earliest)
 }
 
@@ -38,7 +38,7 @@ func (s sequenceFilter) match(g guid) bool {
 	g = g << workerIdShift
 	g = g >> workerIdShift
 	g = g >> timestampShift
-	return g > s.earliest && g < s.latest
+	return int64(g) > s.earliest && int64(g) < s.latest
 }
 
 type andFilter []guidFilter

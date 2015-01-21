@@ -7,11 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bitly/go-nsq"
 	"github.com/hashicorp/serf/serf"
 	"github.com/shipwire/ansqd/internal/polity"
 )
 
-var ExpirationTime time.Duration
+var ExpirationTime = 100 * time.Millisecond
 
 type audit struct {
 	m *Message

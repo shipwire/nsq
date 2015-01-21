@@ -14,6 +14,7 @@ import (
 	"github.com/bitly/nsq/util"
 	"github.com/bitly/nsq/util/registrationdb"
 	"github.com/hashicorp/serf/serf"
+	"github.com/shipwire/serfer"
 )
 
 type logWriter struct {
@@ -65,16 +66,16 @@ func initSerf(opts *nsqdOptions,
 	httpAddr *net.TCPAddr,
 	httpsAddr *net.TCPAddr,
 	broadcastAddr *net.TCPAddr,
-	key []byte) (*serf.Serf, error) {
+	key []byte) (*serf.Serf, *serfer.Serfer, error) {
 
 	hostname, err := os.Hostname()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	gossipAddr, err := net.ResolveTCPAddr("tcp", opts.GossipAddress)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	serfConfig := serf.DefaultConfig()
@@ -104,7 +105,8 @@ func initSerf(opts *nsqdOptions,
 	serfConfig.ReconnectTimeout = time.Hour
 	serfConfig.LogOutput = logWriter{opts.Logger, []byte("serf:")}
 
-	return serf.Create(serfConfig)
+	s, err := serfer.New(serfConfig)
+	return s.Serf(), s, err
 }
 
 func (n *NSQD) serfMemberJoin(ev serf.Event) {
