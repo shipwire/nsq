@@ -21,8 +21,8 @@ type nsqdOptions struct {
 	NSQLookupdTCPAddresses []string `flag:"lookupd-tcp-address" cfg:"nsqlookupd_tcp_addresses"`
 	AuthHTTPAddresses      []string `flag:"auth-http-address" cfg:"auth_http_addresses"`
 
-	GossipAddress     string   `flag:"gossip-address"`
-	SeedNodeAddresses []string `flag:"gossip-seed-address"`
+	GossipAddress       string   `flag:"gossip-address"`
+	GossipNodeAddresses []string `flag:"gossip-seed-address"`
 
 	// diskqueue options
 	DataPath        string        `flag:"data-path"`
