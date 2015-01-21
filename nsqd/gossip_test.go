@@ -106,7 +106,7 @@ func TestGossip(t *testing.T) {
 	}
 }
 
-func converge(timeout time.Duration, nsqds []*NSQD, notifyChan chan struct, isConverged func() bool) {
+func converge(timeout time.Duration, nsqds []*NSQD, notifyChan chan struct{}, isConverged func() bool) {
 	// wait for convergence
 	converged := false
 	t := time.NewTimer(timeout)
