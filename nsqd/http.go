@@ -179,6 +179,10 @@ func (s *httpServer) pingHandler(w http.ResponseWriter, req *http.Request) {
 	if !s.ctx.nsqd.IsHealthy() {
 		code = 500
 	}
+	if s.ctx.nsqd.serf != nil && (s.ctx.nsqd.serf.State() == serf.SerfAlive || len(s.ctx.nsqd.serf.Members()) < 2) {
+		code = 500
+		health = "NOK - gossip unhealthy"
+	}
 	w.Header().Set("Content-Length", strconv.Itoa(len(health)))
 	w.WriteHeader(code)
 	io.WriteString(w, health)
