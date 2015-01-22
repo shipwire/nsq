@@ -532,11 +532,11 @@ func (s *httpServer) doStats(req *http.Request) (interface{}, error) {
 
 	var serfStats map[string]string
 	if s.ctx.nsqd.serf != nil {
-		serfStats = s.ctx.nsqd.serf
+		serfStats = s.ctx.nsqd.serf.Stats()
 	}
 
 	if !jsonFormat {
-		return s.printStats(stats, health), nil
+		return s.printStats(stats, health, serfStats), nil
 	}
 
 	return struct {
@@ -611,9 +611,9 @@ func (s *httpServer) printStats(stats []TopicStats, health string, gossip map[st
 	if gossip != nil {
 		fmt.Fprintf(w, "\nGossip:\n")
 		for k, v := range gossip {
-			fmt.Fprintf(w, "   %s: %s\n", prefix, k, v)
+			fmt.Fprintf(w, "   %s: %s\n", k, v)
 		}
 	}
 
-	return buf.Bytes()
+	return w.Bytes()
 }
