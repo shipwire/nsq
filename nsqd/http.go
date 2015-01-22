@@ -610,9 +610,8 @@ func (s *httpServer) printStats(stats []TopicStats, health string, gossip map[st
 
 	if gossip != nil {
 		fmt.Fprintf(w, "\nGossip:\n")
-		prefix := "   "
 		for k, v := range gossip {
-			fmt.Fprintf(w, "%s[%-15s] %s: %s", prefix, k, v)
+			fmt.Fprintf(w, "   %s: %s\n", prefix, k, v)
 		}
 	}
 
