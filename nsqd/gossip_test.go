@@ -242,7 +242,7 @@ func TestRegossip(t *testing.T) {
 		opts.Logger = newTestLogger(t)
 		opts.GossipAddress = addr.String()
 		opts.BroadcastAddress = "127.0.0.1"
-		opts.GossipRegossipInterval = 5 * time.Second
+		opts.GossipRegossipInterval = 1 * time.Second
 		opts.gossipDelegate = convergenceTester
 		if seedNode != nil {
 			opts.GossipSeedAddresses = []string{seedNode.opts.GossipAddress}
