@@ -286,7 +286,7 @@ func (n *NSQD) gossipLoop() {
 	var topicName string
 	var channelName string
 
-	regossipTicker := time.NewTicker(60 * time.Second)
+	regossipTicker := time.NewTicker(n.opts.GossipRegossipInterval)
 
 	if len(n.opts.GossipSeedAddresses) > 0 {
 		for {
