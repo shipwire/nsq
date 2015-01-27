@@ -382,10 +382,17 @@ func (n *NSQD) initialGossipKey() []byte {
 	if n.tlsConfig != nil && len(n.tlsConfig.Certificates) > 0 {
 		key = n.tlsConfig.Certificates[0].Leaf.Signature
 	}
+	if n.gossipKey == nil {
+		n.gossipKey = key
+	}
 	return key
 }
 
 func (n *NSQD) rotateGossipKey() error {
+	if n.gossipKey == nil {
+		return nil
+	}
+
 	key := make([]byte, 32)
 	_, err := rand.Reader.Read(key)
 	strKey := base64.StdEncoding.EncodeToString(key)
@@ -397,6 +404,6 @@ func (n *NSQD) rotateGossipKey() error {
 	if err != nil {
 		return err
 	}
-	_, err = n.serf.KeyManager().RemoveKey(string(n.initialGossipKey()))
+	_, err = n.serf.KeyManager().RemoveKey(string(n.gossipKey))
 	return err
 }

@@ -59,6 +59,7 @@ type NSQD struct {
 	serf          *serf.Serf
 	serfEventChan chan serf.Event
 	gossipChan    chan interface{}
+	gossipKey     []byte
 	rdb           *registrationdb.RegistrationDB
 
 	idChan     chan MessageID
