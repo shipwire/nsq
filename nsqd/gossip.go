@@ -2,6 +2,8 @@ package nsqd
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"net"
 	"os"
@@ -290,6 +292,13 @@ func (n *NSQD) gossipLoop() {
 	var topicName string
 	var channelName string
 
+	if n.serf.EncryptionEnabled() {
+		err := n.rotateGossipKey()
+		n.logf("FATAL: could not rotate gossip key - %s", err)
+		n.Exit()
+		return
+	}
+
 	regossipTicker := time.NewTicker(n.opts.GossipRegossipInterval)
 
 	if len(n.opts.GossipSeedAddresses) > 0 {
@@ -366,4 +375,28 @@ func (n *NSQD) gossipLoop() {
 exit:
 	regossipTicker.Stop()
 	n.logf("GOSSIP: exiting")
+}
+
+func (n *NSQD) initialGossipKey() []byte {
+	var key []byte
+	if n.tlsConfig != nil && len(n.tlsConfig.Certificates) > 0 {
+		key = n.tlsConfig.Certificates[0].Leaf.Signature
+	}
+	return key
+}
+
+func (n *NSQD) rotateGossipKey() error {
+	key := make([]byte, 32)
+	_, err := rand.Reader.Read(key)
+	strKey := base64.StdEncoding.EncodeToString(key)
+	_, err = n.serf.KeyManager().InstallKey(strKey)
+	if err != nil {
+		return err
+	}
+	_, err = n.serf.KeyManager().UseKey(strKey)
+	if err != nil {
+		return err
+	}
+	_, err = n.serf.KeyManager().RemoveKey(string(n.initialGossipKey()))
+	return err
 }
