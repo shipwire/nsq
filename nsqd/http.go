@@ -237,7 +237,7 @@ func (s *httpServer) getTopicFromQuery(req *http.Request) (url.Values, *Topic, e
 }
 
 func (s *httpServer) doLookup(req *http.Request) (interface{}, error) {
-	if s.ctx.nsqd.serf == nil || s.ctx.nsqd.serf.State() == serf.SerfAlive {
+	if s.ctx.nsqd.serf == nil || s.ctx.nsqd.serf.State() != serf.SerfAlive {
 		return nil, util.HTTPError{400, "GOSSIP_NOT_ENABLED"}
 	}
 
