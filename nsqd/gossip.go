@@ -62,7 +62,8 @@ func initSerf(opts *nsqdOptions,
 	tcpAddr *net.TCPAddr,
 	httpAddr *net.TCPAddr,
 	httpsAddr *net.TCPAddr,
-	broadcastAddr *net.TCPAddr) (*serf.Serf, error) {
+	broadcastAddr *net.TCPAddr,
+	key []byte) (*serf.Serf, error) {
 
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -93,6 +94,9 @@ func initSerf(opts *nsqdOptions,
 	serfConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
 	serfConfig.MemberlistConfig.GossipNodes = 5
 	serfConfig.MemberlistConfig.LogOutput = logWriter{opts.Logger, []byte("memberlist:")}
+	if len(key) != 0 {
+		serfConfig.MemberlistConfig.SecretKey = key
+	}
 	serfConfig.EventCh = serfEventChan
 	serfConfig.EventBuffer = 1024
 	serfConfig.ReconnectTimeout = time.Hour

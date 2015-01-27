@@ -246,11 +246,17 @@ func (n *NSQD) Main() {
 	}
 
 	if n.opts.GossipAddress != "" {
+		var key []byte
+		if n.tlsConfig != nil && len(n.tlsConfig.Certificates) > 0 {
+			key = n.tlsConfig.Certificates[0].Leaf.Signature
+		}
 		serf, err := initSerf(n.opts, n.serfEventChan,
 			n.tcpListener.Addr().(*net.TCPAddr),
 			n.httpListener.Addr().(*net.TCPAddr),
 			httpsAddr,
-			n.broadcastAddr)
+			n.broadcastAddr,
+			key,
+		)
 		if err != nil {
 			n.logf("FATAL: failed to initialize Serf - %s", err)
 			os.Exit(1)
